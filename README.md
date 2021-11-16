@@ -1,1 +1,1 @@
-## Template for nodejs + express + typescript project
+## Desafio da Growdev usando a API da Marvel
