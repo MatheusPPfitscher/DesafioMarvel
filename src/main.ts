@@ -10,7 +10,6 @@ app.use(express.json());
 app.use(cors());
 
 
-
 const apiMarvel = axios.create({
     baseURL: "http://gateway.marvel.com/v1/public",
 });
@@ -20,9 +19,11 @@ function createAuth() {
     const apikey = process.env.PUBLICKEY;
     const privatekey = process.env.PRIVATEKEY;
     const hash = md5(ts.toString() + privatekey + apikey);
-
     return { ts, apikey, hash };
 }
+
+
+
 
 
 app.get("/", async (req, res) => {
@@ -40,11 +41,6 @@ app.get("/", async (req, res) => {
             : undefined;
 
         const offset: number = limit * (page - 1);
-
-        const ts = new Date().getTime();
-        const apikey = process.env.PUBLICKEY;
-        const privatekey = process.env.PRIVATEKEY;
-        const hash = md5(ts.toString() + privatekey + apikey);
 
         const apiResponse = await apiMarvel.get("/characters", {
             params: {
@@ -74,5 +70,48 @@ app.get("/", async (req, res) => {
         });
     }
 });
+app.get("/personagem/:characterId", async (req, res) => {
+    const idPersonagem = req.params.characterId;
+    try {
+        const apiResponse = await apiMarvel.get(`/characters/${idPersonagem}`, {
+            params: {
+                ...createAuth(),
+            }
+        });
 
+        let resposta = apiResponse.data.data.results[0];
+        let listaComics = [];
+        // console.log(resposta.comics.items);
+
+
+        for (let comic of resposta.comics.items) {
+            listaComics.push(await getComic(comic.resourceURI));
+        }
+
+        res.status(200).send({
+            name: resposta.name,
+            description: resposta.description,
+            photo: `${resposta.thumbnail.path}.${resposta.thumbnail.extension}`,
+            listaComics
+        });
+    }
+    catch (error) {
+        console.log(error);
+    }
+});
+
+async function getComic(link: string) {
+    const apiResponse = await apiMarvel.get(link, {
+        params: {
+            ...createAuth(),
+        }
+    });
+    let resposta = apiResponse.data.data.results[0];
+    console.log(resposta);
+
+    return {
+        name: resposta.name,
+        thumbnail: resposta.thumbnail.path + "." + resposta.thumbnail.extension
+    };
+}
 app.listen(8081, () => console.log("Server is running..."));
