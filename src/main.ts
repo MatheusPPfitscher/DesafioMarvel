@@ -22,24 +22,17 @@ function createAuth() {
     return { ts, apikey, hash };
 }
 
-
-
-
-
 app.get("/", async (req, res) => {
     try {
         const page: number = req.query.page
             ? parseInt(req.query.page as string)
             : 1;
-
         const limit: number = req.query.limit
             ? parseInt(req.query.limit as string)
             : 10;
-
         const name = req.query.name
             ? req.query.name as string
             : undefined;
-
         const offset: number = limit * (page - 1);
 
         const apiResponse = await apiMarvel.get("/characters", {
@@ -50,6 +43,7 @@ app.get("/", async (req, res) => {
                 nameStartsWith: name
             }
         });
+
         let characters = apiResponse.data.data.results;
         characters = characters.map((character: any) => {
             return {
@@ -70,8 +64,9 @@ app.get("/", async (req, res) => {
         });
     }
 });
+
 app.get("/personagem/:characterId", async (req, res) => {
-    const idPersonagem = req.params.characterId;
+    const idPersonagem: number = parseInt(req.params.characterId);
     try {
         const apiResponse = await apiMarvel.get(`/characters/${idPersonagem}`, {
             params: {
@@ -80,19 +75,14 @@ app.get("/personagem/:characterId", async (req, res) => {
         });
 
         let resposta = apiResponse.data.data.results[0];
-        let listaComics = [];
-        // console.log(resposta.comics.items);
-
-
-        for (let comic of resposta.comics.items) {
-            listaComics.push(await getComic(comic.resourceURI));
-        }
+        let listaComics = await comicsDoPersonagem(idPersonagem);
+        console.log(listaComics);
 
         res.status(200).send({
             name: resposta.name,
             description: resposta.description,
             photo: `${resposta.thumbnail.path}.${resposta.thumbnail.extension}`,
-            listaComics
+            comics: listaComics
         });
     }
     catch (error) {
@@ -100,18 +90,21 @@ app.get("/personagem/:characterId", async (req, res) => {
     }
 });
 
-async function getComic(link: string) {
-    const apiResponse = await apiMarvel.get(link, {
+
+async function comicsDoPersonagem(idPersonagem: number) {
+    const apiResponse = await apiMarvel.get(`/characters/${idPersonagem}/comics`, {
         params: {
-            ...createAuth(),
+            ...createAuth()
         }
     });
-    let resposta = apiResponse.data.data.results[0];
-    console.log(resposta);
-
-    return {
-        name: resposta.name,
-        thumbnail: resposta.thumbnail.path + "." + resposta.thumbnail.extension
-    };
+    let resposta = apiResponse.data.data.results;
+    let arrayComics = resposta.map((comic: any) => {
+        return {
+            title: comic.title,
+            photo: comic.thumbnail.path + "." + comic.thumbnail.extension
+        };
+    });
+    return arrayComics;
 }
+
 app.listen(8081, () => console.log("Server is running..."));
