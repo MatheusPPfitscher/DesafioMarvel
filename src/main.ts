@@ -3,7 +3,7 @@ import cors from 'cors';
 import axios from 'axios';
 import md5 from 'md5';
 require('dotenv/config');
-
+const port = process.env.PORT || 8082;
 
 const app = express();
 app.use(express.json());
@@ -107,4 +107,4 @@ async function comicsDoPersonagem(idPersonagem: number) {
     return arrayComics;
 }
 
-app.listen(8081, () => console.log("Server is running..."));
+app.listen(port, () => console.log("Server is running..."));
